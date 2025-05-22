@@ -1,0 +1,63 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# 1. Generate Synthetic Geothermal Data
+np.random.seed(42)
+num_samples = 1000
+
+# Features: temperature gradient, heat flow, rock permeability, seismic activity, water availability
+data = pd.DataFrame({
+    'temperature_gradient': np.random.normal(50, 10, num_samples),  # °C/km
+    'heat_flow': np.random.normal(80, 20, num_samples),              # mW/m^2
+    'rock_permeability': np.random.normal(150, 40, num_samples),     # mD
+    'seismic_activity': np.random.uniform(0, 10, num_samples),       # magnitude scale
+    'water_availability': np.random.uniform(0, 1, num_samples),      # normalized
+})
+
+# Create a binary target: 1 = suitable for geothermal energy, 0 = not suitable
+def label_site(row):
+    if (row['temperature_gradient'] > 55 and
+        row['heat_flow'] > 90 and
+        row['rock_permeability'] > 160 and
+        row['seismic_activity'] < 5 and
+        row['water_availability'] > 0.5):
+        return 1
+    else:
+        return 0
+
+data['suitable'] = data.apply(label_site, axis=1)
+
+# 2. Train-Test Split
+X = data.drop('suitable', axis=1)
+y = data['suitable']
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+# 3. Train a Random Forest Model
+model = RandomForestClassifier(n_estimators=100, random_state=42)
+model.fit(X_train, y_train)
+
+# 4. Evaluate the Model
+y_pred = model.predict(X_test)
+print("Classification Report:\n", classification_report(y_test, y_pred))
+conf_matrix = confusion_matrix(y_test, y_pred)
+sns.heatmap(conf_matrix, annot=True, fmt='d', cmap='Blues')
+plt.xlabel('Predicted')
+plt.ylabel('True')
+plt.title('Confusion Matrix')
+plt.show()
+
+# 5. Predict on New Synthetic Sites
+new_sites = pd.DataFrame({
+    'temperature_gradient': [60, 45],
+    'heat_flow': [100, 75],
+    'rock_permeability': [170, 130],
+    'seismic_activity': [3, 6],
+    'water_availability': [0.7, 0.4]
+})
+predictions = model.predict(new_sites)
+print("Predictions for new sites:", predictions)
